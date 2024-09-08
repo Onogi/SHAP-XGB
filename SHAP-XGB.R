@@ -50,7 +50,7 @@ GenotypeFile <- "Genotype.csv"
 ##These values are the averages across bootstrap samples
 
 ##Global SHAP values are also output at each trait directory
-###Shap_values_globalImportance.csv: global importance for main effects ("confound" effects)
+###Shap_values_globalImportance.csv: global importance for main effects ("compouond" effects)
 ###=>this includes P x 1 values
 ###Shap_int_globalimportance.csv: global importance for interaction effects
 ###=>this consists of a P x P matrix.
