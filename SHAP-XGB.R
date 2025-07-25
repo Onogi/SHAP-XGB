@@ -91,8 +91,8 @@ for (target in 1:E) {
   dir.create(file.path(folder_name, "LocalImportance"))
   
   #Use lines with phenotypic values
-  Y <- Y_Ori[complete.cases(Y_Ori[, target]), ]
-  X <- X_Ori[complete.cases(Y_Ori[, target]), ]
+  Y <- Y_Ori[complete.cases(Y_Ori[, target]), , drop = FALSE]
+  X <- X_Ori[complete.cases(Y_Ori[, target]), , drop = FALSE]
   
   #Number of lines
   N <- nrow(X)
@@ -130,7 +130,7 @@ for (target in 1:E) {
     
     #Save values
     shap_values_results[ ,i] <- unlist(shap_values$shap_score)
-    shap_int_results[, i] <- as.vector(shap_int[ , -P, -P])
+    shap_int_results[, i] <- as.vector(shap_int[ , -c(P + 1), -c(P + 1)])
   }#i
   
   #Average bootstrap samples
