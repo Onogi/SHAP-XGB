@@ -89,7 +89,7 @@ for (target in 1:E) {
     
     #Save values
     shap_values_results[ ,i] <- unlist(shap_values$shap_score)
-    shap_int_results[, i] <- as.vector(shap_int[ , -P, -P])
+    shap_int_results[, i] <- as.vector(shap_int[ , -(P + 1), -(P + 1)])
   }#i
   
   #Average bootstrap samples
