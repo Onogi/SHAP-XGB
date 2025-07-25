@@ -50,8 +50,8 @@ for (target in 1:E) {
   dir.create(file.path(folder_name, "LocalImportance"))
   
   #Use lines with phenotypic values
-  Y <- Y_Ori[complete.cases(Y_Ori[, target]), ]
-  X <- X_Ori[complete.cases(Y_Ori[, target]), ]
+  Y <- Y_Ori[complete.cases(Y_Ori[, target]), , drop = FALSE]
+  X <- X_Ori[complete.cases(Y_Ori[, target]), , drop = FALSE]
   
   #Number of lines
   N <- nrow(X)
