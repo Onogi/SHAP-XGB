@@ -5,7 +5,15 @@
 #Drawing figures for the main and interaction effects are also demonstrated.
 
 
-#Read files#####################################################################
+#Applying SHAP-XGB##############################################################
+source("shapxgb.R")
+
+#Apply SHAP-XGB to each trait using shapxgb
+shapxgb("DaysToFlowering.csv", "Genotype.csv")
+
+
+#Plot main and interaction global importance####################################
+#Read files
 #Phenotypes
 Y_Ori <- as.matrix(read.csv("DaysToFlowering.csv", header = TRUE, row.names = 1))
 #Environment names of Y_Ori contain errors and are fixed here
@@ -33,127 +41,6 @@ Map <- read.csv("Map.csv", header = TRUE, row.names = 1)
 MajorQTL <- c(92, 60, 112, 108)
 names(MajorQTL) <- c("HD1", "HD6", "DTH8", "HD2")
 
-
-#Applying SHAP-XGB##############################################################
-library(xgboost)
-library(SHAPforxgboost)
-
-#Number of bootstrap samples
-Nboot <- 100
-
-#Apply SHAP-XGB to each trait
-for (target in 1:E) {
-  
-  #Create directory for the target trait
-  folder_name <-paste0("SHAP-XGB.at.", colnames(Y_Ori)[target])
-  dir.create(folder_name)
-  dir.create(file.path(folder_name, "LocalImportance"))
-  
-  #Use lines with phenotypic values
-  Y <- Y_Ori[complete.cases(Y_Ori[, target]), , drop = FALSE]
-  X <- X_Ori[complete.cases(Y_Ori[, target]), , drop = FALSE]
-  
-  #Number of lines
-  N <- nrow(X)
-  
-  #Shap values for each marker and line in each bootstrap sample
-  shap_values_results <- matrix(0, nrow = N * P, ncol = Nboot)
-  colnames(shap_values_results) <- 1:Nboot
-  
-  #Shap interaction values for each marker combination and line in each bootstrap sample
-  ##The object becomes quite large when P is high.
-  shap_int_results <- matrix(0, nrow = P * N * P, ncol = Nboot)
-  colnames(shap_int_results) <- 1:Nboot
-  
-  #Bootstrap
-  for (i in 1:Nboot){
-    
-    cat(target, i, "\n")
-    
-    #Divide data randomly
-    Train.pop <- sort(sample(1:N, N, replace = TRUE))
-    Val.pop <- c(1:N)[-unique(Train.pop)]
-    
-    #Train model
-    Train <- xgb.DMatrix(data = X[Train.pop, ], label = Y[Train.pop, target])
-    Val <- xgb.DMatrix(data = X[Val.pop, ], label = Y[Val.pop, target])
-    model <- xgb.train(data = Train,
-                       nrounds = 1000,
-                       watchlist = list(train = Train, eval = Val),
-                       early_stopping_rounds = 3,
-                       verbose = 0)
-    
-    #Calculate Shap values
-    shap_values <- shap.values(xgb_model = model, X_train = Train)
-    shap_int <- shap.prep.interaction(xgb_mod = model, X_train = Train)
-    
-    #Save values
-    shap_values_results[ ,i] <- unlist(shap_values$shap_score)
-    shap_int_results[, i] <- as.vector(shap_int[ , -(P + 1), -(P + 1)])
-  }#i
-  
-  #Average bootstrap samples
-  ##Main effects
-  shap_values_average <- rowMeans(shap_values_results)
-  write.csv(shap_values_average, file = file.path(folder_name, "LocalImportance/Shap_values_average.csv"))
-  ##Interaction (divide the results into P chunks)
-  for (i in 1:P) {
-    start_row <- (i - 1) * (N * P) + 1
-    end_row <- i * (N * P)
-    chunk <- shap_int_results[start_row:end_row, ]
-    shap_int_average <- rowMeans(chunk)
-    write.csv(shap_int_average, file = file.path(folder_name, "LocalImportance", paste0("Shap_int_average_", i, ".csv")))
-  }
-  
-}#target
-
-#remove large objects and clean up
-rm(shap_values_results, shap_int_results, shap_values_average, chunk, shap_int_average)
-gc();gc();gc();gc()
-
-
-#Calculate global importance####################################################
-#Main
-SHAP <- matrix(NA, nrow = P, ncol = E)
-colnames(SHAP) <- colnames(Y_Ori)
-for(target in 1:E){
-  
-  N <- sum(!is.na(Y_Ori[, target]))
-  Env <- colnames(Y_Ori)[target]
-  
-  result <- unlist(read.csv(paste0("SHAP-XGB.at.", Env, "/LocalImportance/Shap_values_average.csv"), 
-                            header = TRUE, row.names = 1))
-  result <- matrix(result, nrow = N, ncol = P)
-  SHAP[, target] <- apply(abs(result), 2, mean)
-  write.csv(SHAP[, target], file = file.path(folder_name, "Shap_values_globalImportance.csv"))
-}
-
-#Interaction
-SHAP.int <- as.list(numeric(E))
-names(SHAP.int) <- colnames(Y_Ori)
-for(target in 1:E){
-  
-  N <- sum(!is.na(Y_Ori[, target]))
-  Env <- colnames(Y_Ori)[target]
-  SHAP.int[[target]] <- matrix(NA, P, P)
-  
-  for(j in 1:(P - 1)){
-    
-    result <- as.matrix(read.csv(paste0("SHAP-XGB.at.", Env, "/LocalImportance/Shap_int_average_", j, ".csv"), 
-                                 header = TRUE, row.names = 1))
-    #Two notes:
-    ##the number of columns of result is 1.
-    ##j needs not to be P because interactions with Pth marker are already included in the files until P.
-    for(k in (j+1):P){
-      #SHAP interaction values are doubled
-      SHAP.int[[target]][k, j] <- mean(abs(result[((k - 1) * N + 1):(k * N), ])) * 2
-    }
-  }
-  write.csv(SHAP.int[[target]], file = file.path(folder_name, "Shap_int_globalimportance.csv")) 
-}
-
-
-#Plot main and interaction global importance####################################
 #Colors for different chromosomes
 Col <- NULL
 for(chr in 1:12) Col <- c(Col, rep(chr%%2 + 1, sum(Map$Chr == chr)))
