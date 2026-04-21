@@ -9,4 +9,4 @@ This repository contains the R scripts for conducting SHAP-XGB. In addition, an 
 - Map.csv: Map of markers.
 
 Reference:
-Tomohiro Ishibashi, Akio Onogi (2024) Applying gradient tree boosting to QTL mapping with Shapley additive explanations. bioRxiv, https://doi.org/10.1101/2024.01.15.575690.
+Tomohiro Ishibashi, Akio Onogi. Applying gradient tree boosting to QTL mapping with Shapley additive explanations, Breeding Science, 2025, Volume 75, Issue 5, Pages 378-391, https://doi.org/10.1270/jsbbs.24083
