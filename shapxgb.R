@@ -119,15 +119,15 @@ shapxgb <- function(PhenotypeFile, GenotypeFile, Early_stopping_rounds = 3, Nrou
       Val <- xgb.DMatrix(data = X[Val.pop, ], label = Y[Val.pop, target])
       model <- xgb.train(data = Train,
                          nrounds = Nrounds,
-                         watchlist = list(train = Train, eval = Val),
+                         evals = list(train = Train, eval = Val),
                          early_stopping_rounds = Early_stopping_rounds,
                          verbose = 0)
       
       #Calculate SHAP values
-      shap_values <- shap.values(xgb_model = model, X_train = Train)
+      shap_values <- shap.values(xgb_model = model, X_train = X[Train.pop, ])
       shap_values_average <- shap_values_average + as.matrix(shap_values$shap_score)
       
-      shap_int <- shap.prep.interaction(xgb_mod = model, X_train = Train)
+      shap_int <- shap.prep.interaction(xgb_mod = model, X_train = X[Train.pop, ])
       shap_int <- shap_int[ , -c(P + 1), -c(P + 1)]#removing bias
       shap_int <- 2 * shap_int#doubled because only the upper triangle is used
       for (i in 1:N) {
